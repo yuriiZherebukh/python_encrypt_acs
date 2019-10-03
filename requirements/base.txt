@@ -1,0 +1,7 @@
+asn1crypto==0.24.0
+cffi==1.12.3
+cryptography==2.7
+pyAesCrypt==0.4.3
+pycparser==2.19
+PySimpleGUI==4.4.1
+six==1.12.0
