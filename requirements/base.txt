@@ -1,7 +1,14 @@
 asn1crypto==0.24.0
 cffi==1.12.3
 cryptography==2.7
+dill==0.3.1.1
+multiprocess==0.70.9
 pyAesCrypt==0.4.3
 pycparser==2.19
+PyQt5==5.13.1
+PyQt5-sip==4.19.19
+PySide2==5.13.1
 PySimpleGUI==4.4.1
+PySimpleGUIQt==0.28.0
+shiboken2==5.13.1
 six==1.12.0

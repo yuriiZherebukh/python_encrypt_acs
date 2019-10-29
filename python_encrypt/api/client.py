@@ -5,102 +5,78 @@ This module contains Client-side functionality to work with file encryption\decr
 import logging
 import os
 import socket
-import time
-from getpass import getpass
-from sys import exit
+import datetime
 
-from python_encrypt.api.utils import HOST, PORT
+import threading
+from api.utils import PORT
+from event import EncryptEvent, Event
 
 logging.getLogger().setLevel(logging.DEBUG)
 
 
 class EncryptionClient:
-    def __init__(self, file, pwd, encryption_mode):
+    def __init__(self, file, hostname, queue):
         self._file = file
         self._file_name = self._file.split("\\")[-1]
-        self._password = pwd
-        self._encryption_mode = encryption_mode
-        try:
-            self._socket = socket.socket()
-            self._socket.connect((HOST, PORT))
-            logging.info("Successfully started the connection")
-        except ConnectionRefusedError:
-            logging.warning("Could not connect to server. Exiting the program")
-            exit(1)
+        self._file_size = os.stat(self._file).st_size
+        self._queue = queue
+        self._threads = []
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        connected = False
+        now = datetime.datetime.now()
+        after_5_min = now + datetime.timedelta(minutes=5)
+        while not connected:
+            try:
+                self._socket.connect((hostname, PORT))
+                connected = True
+                now = datetime.datetime.now()
+                if now >= after_5_min:
+                    raise TimeoutError
+            except socket.timeout:
+                continue
+        logging.info("Successfully established connection")
 
     def send_file_info(self):
-        data_to_send = "{}/{}/{}/{}".format(self._file_name, os.stat(self._file).st_size, self._password,
-                                            self._encryption_mode)
-        logging.info("Sending data: filename - {}, file size - {}, "
-                     "password length - {}, encryption mode - {}".format(self._file_name,
-                                                                         os.stat(self._file).st_size,
-                                                                         len(self._password),
-                                                                         "encrypt" if self._encryption_mode == "e" else
-                                                                         "decrypt"))
+        data_to_send = "{}***{}".format(self._file_name, self._file_size)
+        logging.info("Sending data: filename - {}, file size - {}".format(self._file_name,
+                                                                          self._file_size))
         self._socket.send(data_to_send.encode())
         logging.info("Successfully sent data to the server")
 
+    def get_response(self):
+        def _wait_for_user():
+            try:
+                response = self._socket.recv(1024).decode()
+            except ConnectionResetError:
+                self._socket.close()
+                self._queue.put(Event(EncryptEvent.CANCEL, ''))
+                return
+            logging.info(f'User sent: {response}')
+            self._queue.put(Event(EncryptEvent(response), ''))
+
+        threads = threading.enumerate()
+        if 'WaitForUser' in [thread.name for thread in threads]:
+            return
+
+        logging.info('Waiting for user to respond')
+        t = threading.Thread(target=_wait_for_user, name='WaitForUser')
+        self._threads.append(t)
+        if len(self._threads) > 1:
+            raise Exception
+        t.start()
+
     def send_file(self):
-        logging.info("Sending file")
-        with open(self._file, "rb") as file:
-            file_data = file.read()
-            self._socket.sendall(file_data)
-            self._socket.send(b"Finished")
+        file = open(self._file, "rb")
+        file_data = file.read(1024 * 1024)
+        length_sent = len(file_data)
+        self._queue.put(Event(EncryptEvent.TRANSFER_FILE.value, ''))
+        while file_data:
+            self._socket.send(file_data)
+            file_data = file.read(1024 * 1024)
+            length_sent = length_sent + len(file_data)
+            progress_indicator = (length_sent / float(self._file_size)) * 100
+            self._queue.put(Event(EncryptEvent.TRANSFER_PROGRESS.value, {'progress': progress_indicator}))
 
+        self._socket.send(b"Finished")
+        self._queue.put(Event(EncryptEvent.DONE_TRANSFER.value, ''))
         logging.info("Successfully sent file")
-
-    def encrypt_decrypt_file(self):
-        try:
-            received_data = bytes()
-            raw_data = self._socket.recv(1024)
-            file_size, data = raw_data.split(b"***")
-
-            logging.info("File size to receive: {}".format(file_size))
-            logging.info("Receiving file...")
-            time.sleep(0.5)
-            if self._encryption_mode == "e":
-                with open(self._file + ".aes", "wb") as file_to_encrypt:
-                    total_received = len(data)
-                    received_data = received_data + data
-                    while data != bytes(''.encode()):
-                        logging.info("{0:.2f}".format((total_received / float(file_size)) * 100) + "% Done")
-                        data = self._socket.recv(1024)
-                        total_received += len(data)
-                        received_data = received_data + data
-
-                    file_to_encrypt.write(received_data)
-
-                logging.info("Successfully received file with name: {}".format(self._file + ".aes"))
-
-            elif self._encryption_mode == "d":
-                with open(self._file[:-4], "wb") as file_to_decrypt:
-                    total_received = len(data)
-                    received_data = received_data + data
-                    while data != bytes(''.encode()):
-                        logging.info("{0:.2f}".format((total_received / float(file_size)) * 100) + "% Done")
-                        data = self._socket.recv(1024)
-                        total_received += len(data)
-                        received_data = received_data + data
-
-                    file_to_decrypt.write(received_data)
-
-                logging.info("Successfully received file with name: {}".format(self._file[:-4]))
-            else:
-                logging.warning("Incorrect mode: {}".format(self._encryption_mode))
-                exit(1)
-
-            self._socket.close()
-        except Exception as err:
-            logging.warning("Error when tried to send file for encryption\\decryption. Error: {}".format(err))
-            exit(1)
-
-
-if __name__ == '__main__':
-    filename = input("Filename? -> ")
-    password = getpass("Password ->")
-    mode = input("Mode?(e/d (encrypt- decrypt)) -> ")
-    encryption_client = EncryptionClient(filename, password, mode)
-    encryption_client.send_file_info()
-    encryption_client.send_file()
-    encryption_client.encrypt_decrypt_file()
-    exit(0)
