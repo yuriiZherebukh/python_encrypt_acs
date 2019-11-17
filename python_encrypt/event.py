@@ -16,6 +16,7 @@ class EncryptEvent(Enum):
     ENCRYPT_FILE = 'Encrypt_File'
     DECRYPT_FILE = 'Decrypt_File'
     SEND_FILE = 'Send_File'
+    ERROR = 'Error'
 
 
 class GUIEvent(Enum):

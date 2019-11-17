@@ -36,7 +36,8 @@ class EncryptFileWindow(BaseWindow):
                     gui.PopupOK('Please type password')
                 elif values.get(PythonEncryptKeyBinding.REPEAT_PASSWORD.value) == '':
                     gui.PopupOK('Please repeat password')
-                elif values.get(PythonEncryptKeyBinding.PASSWORD.value) != values.get(PythonEncryptKeyBinding.REPEAT_PASSWORD.value):
+                elif values.get(PythonEncryptKeyBinding.PASSWORD.value) != \
+                        values.get(PythonEncryptKeyBinding.REPEAT_PASSWORD.value):
                     gui.PopupOK('Passwords don"t match')
                     self._window.Element(PythonEncryptKeyBinding.REPEAT_PASSWORD.value).Update('')
                     self._window.Element(PythonEncryptKeyBinding.PASSWORD.value).Update('')

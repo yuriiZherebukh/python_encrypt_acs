@@ -18,7 +18,7 @@ logging.getLogger('EncryptionServer').setLevel(logging.DEBUG)
 class EncryptionServer:
     def __init__(self):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.bind((socket.gethostbyname_ex(socket.gethostname())[2][-1], PORT))
+        self._socket.bind((socket.gethostbyname_ex(socket.gethostname())[2][1], PORT))
         # self._socket.bind((socket.gethostbyname_ex(socket.gethostname())[2][-1], PORT))
         logging.info("Starting server")
         self._socket.listen(1)
@@ -26,7 +26,6 @@ class EncryptionServer:
 
         self._user_socket_connection = None
         self._user_address = None
-        self.threads = []
 
     def listen(self, queue):
         while True:

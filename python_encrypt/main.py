@@ -1,13 +1,16 @@
+import multiprocessing
+import re
+
+import PySimpleGUI as gui
+
 from api.server import EncryptionServer
-from gui.base import PythonEncryptWindow, DownloadProgressBar, TransferProgressBar
-from gui.receive import ReceiveCheckbox, SaveFileWindow
-from gui.encryption import EncryptFileWindow
-from gui.decryption import DecryptFileWindow
-from gui.transfer import SendFileWindow
 from dispatcher import EventDispatcher
 from event import GUIEvent, EncryptEvent, Event
-import multiprocessing
-import PySimpleGUI as gui
+from gui.base import PythonEncryptWindow, DownloadProgressBar, TransferProgressBar
+from gui.decryption import DecryptFileWindow
+from gui.encryption import EncryptFileWindow
+from gui.receive import ReceiveCheckbox, SaveFileWindow
+from gui.transfer import SendFileWindow
 
 
 def run_main_thread(encrypt_queue):
@@ -40,7 +43,12 @@ def run_main_thread(encrypt_queue):
                 if values.get('-HOST_INPUT-') == '':
                     gui.PopupOK('Please specify IP address of sender')
                 else:
-                    encrypt_queue.put(Event(EncryptEvent.SEND_FILE.value, values.get('-HOST_INPUT-')))
+                    ip_address = values.get('-HOST_INPUT-')
+                    ip_match = re.match("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_address)
+                    if ip_match:
+                        encrypt_queue.put(Event(EncryptEvent.SEND_FILE.value, ip_address))
+                    else:
+                        gui.PopupOK('Enter valid IP address')
         menu_item = encrypt_window.tray_icon.Read(timeout=10)
         if menu_item in (GUIEvent.OPEN.value, GUIEvent.ACTIVATED.value):
             if encrypt_window.window:

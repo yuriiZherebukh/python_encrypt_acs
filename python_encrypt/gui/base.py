@@ -42,11 +42,11 @@ class PythonEncryptWindow:
                   [gui.Input(key=PythonEncryptKeyBinding.FILE_PATH_ENCRYPT.value), gui.FileBrowse()],
                   [gui.Button('Decrypt', key=PythonEncryptKeyBinding.DECRYPT.value)],
                   [gui.Input(key=PythonEncryptKeyBinding.FILE_PATH_DECRYPT.value),
-                                                             gui.FileBrowse(
-                                                                 file_types=(('Encrypted Files', '*.aes'),))],
+                   gui.FileBrowse(file_types=(('Encrypted Files', '*.aes'),))],
                   [gui.Text('Or')],
                   [gui.Text('Send file to:')], [gui.Input(key='-HOST_INPUT-'), gui.Button('Send', key='-SEND_FILE-')],
-                  [gui.Text('Дипломна робота виконана студентом групи КНУС-12')],[gui.Text('Жеребух Юрій-Діонізій Ростиславович')],[gui.Text('2019 рік')],
+                  [gui.Text('Дипломна робота виконана студентом групи КНУС-12')],
+                  [gui.Text('Жеребух Юрій-Діонізій Ростиславович')], [gui.Text('2019 рік')],
                   [gui.Cancel()]]
         self._window = gui.Window('Python Encrypt').Layout(layout).Finalize()
 
